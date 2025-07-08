@@ -1,6 +1,8 @@
+from datetime import UTC, datetime
 import os
 import argparse
 import json
+from pathlib import Path
 import xml.etree.ElementTree as ET
 from typing import Dict, List
 from tqdm import tqdm
@@ -87,6 +89,7 @@ def convert_xmls_to_cocojson(annotation_paths: List[str],
                              output_jsonpath: str,
                              extract_num_from_imgid: bool = True):
     output_json_dict = {
+        "info": [],
         "images": [],
         "type": "instances",
         "annotations": [],
@@ -120,6 +123,11 @@ def convert_xmls_to_cocojson(annotation_paths: List[str],
             continue
         category_info = {'supercategory': 'none', 'id': label_id, 'name': label}
         output_json_dict['categories'].append(category_info)
+
+    output_json_dict['info'] = {
+        "description": f"Converted from VOC to COCO format ({Path(output_jsonpath).parent})",
+        "date_created": f"{datetime.now(UTC).isoformat()}",
+    }
 
     with open(output_jsonpath, 'w') as f:
         output_json = json.dumps(output_json_dict)
