@@ -1,3 +1,5 @@
+Update 2025-07-09: Some changes made to the original repository to add a simplified script for conversion.
+
 # voc2coco
 
 This is script for converting VOC format XMLs to COCO format json(ex. coco_eval.json).
@@ -35,10 +37,18 @@ grep -ERoh '<name>(.*)</name>' /Path_to_folder | sort | uniq | sed 's/<name>//g'
 
 ### 2. Run script
 
-##### 2.1 Usage 1(Use ids list)
+#### 2.1 Usage with processing script
+In this case, the `process_voc` script is called directly with the path to the directory with the VOC XMLs and the label file.
+```bash
+uv run python process_voc.py \
+    --dir /dir/to/xmls \
+    --labels /path/to/label.txt
+```
+
+#### 2.2 Usage with ids list
 
 ```bash
-$ python voc2coco.py \
+uv run python voc2coco.py \
     --ann_dir /path/to/annotation/dir \
     --ann_ids /path/to/annotations/ids/list.txt \
     --labels /path/to/labels.txt \
@@ -46,7 +56,7 @@ $ python voc2coco.py \
     <option> --ext xml
 ```
 
-##### 2.2 Usage 2(Use annotation paths list)
+#### 2.3 Usage with annotation path list
 
 **Sample paths.txt**
 
@@ -57,7 +67,7 @@ $ python voc2coco.py \
 ```
 
 ```bash
-$ python voc2coco.py \
+uv run python voc2coco.py \
     --ann_paths_list /path/to/annotation/paths.txt \
     --labels /path/to/labels.txt \
     --output /path/to/output.json \
@@ -69,7 +79,7 @@ $ python voc2coco.py \
 In this case, you can convert [Shenggan/BCCD_Dataset: BCCD Dataset is a small-scale dataset for blood cells detection.](https://github.com/Shenggan/BCCD_Dataset) by this script.
 
 ```bash
-$ python voc2coco.py
+uv run python voc2coco.py
     --ann_dir sample/Annotations \
     --ann_ids sample/dataset_ids/test.txt \
     --labels sample/labels.txt \
@@ -77,7 +87,7 @@ $ python voc2coco.py
     --ext xml
 
 # Check output
-$ ls sample/ | grep bccd_test_cocoformat.json
+ls sample/ | grep bccd_test_cocoformat.json
 bccd_test_cocoformat.json
 
 # Check output

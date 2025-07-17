@@ -1,6 +1,8 @@
+from datetime import UTC, datetime
 import os
 import argparse
 import json
+from pathlib import Path
 import xml.etree.ElementTree as ET
 from typing import Dict, List
 from tqdm import tqdm
@@ -10,7 +12,7 @@ import re
 def get_label2id(labels_path: str) -> Dict[str, int]:
     """id is 1 start"""
     with open(labels_path, 'r') as f:
-        labels_str = f.read().split()
+        labels_str = f.read().splitlines()
     labels_ids = list(range(1, len(labels_str)+1))
     return dict(zip(labels_str, labels_ids))
 
@@ -57,9 +59,11 @@ def get_image_info(annotation_root, extract_num_from_imgid=True):
     return image_info
 
 
-def get_coco_annotation_from_obj(obj, label2id):
+def get_coco_annotation_from_obj(obj, label2id) -> dict | None:
     label = obj.findtext('name')
-    assert label in label2id, f"Error: {label} is not in label2id !"
+    if f"!{label}" in label2id:
+        return None
+    assert label in label2id, f"Error: {label} is not in label2id ! {label2id}"
     category_id = label2id[label]
     bndbox = obj.find('bndbox')
     xmin = int(float(bndbox.findtext('xmin'))) - 1
@@ -85,6 +89,7 @@ def convert_xmls_to_cocojson(annotation_paths: List[str],
                              output_jsonpath: str,
                              extract_num_from_imgid: bool = True):
     output_json_dict = {
+        "info": [],
         "images": [],
         "type": "instances",
         "annotations": [],
@@ -92,6 +97,7 @@ def convert_xmls_to_cocojson(annotation_paths: List[str],
     }
     bnd_id = 1  # START_BOUNDING_BOX_ID, TODO input as args ?
     print('Start converting !')
+    ignored_labels = 0
     for a_path in tqdm(annotation_paths):
         # Read annotation xml
         ann_tree = ET.parse(a_path)
@@ -104,17 +110,29 @@ def convert_xmls_to_cocojson(annotation_paths: List[str],
 
         for obj in ann_root.findall('object'):
             ann = get_coco_annotation_from_obj(obj=obj, label2id=label2id)
+            if ann is None:
+                ignored_labels +=  1
+                continue
             ann.update({'image_id': img_id, 'id': bnd_id})
             output_json_dict['annotations'].append(ann)
             bnd_id = bnd_id + 1
 
     for label, label_id in label2id.items():
+        if label.startswith('!'):
+            # Ignore labels that start with '!'
+            continue
         category_info = {'supercategory': 'none', 'id': label_id, 'name': label}
         output_json_dict['categories'].append(category_info)
+
+    output_json_dict['info'] = {
+        "description": f"Converted from VOC to COCO format ({Path(output_jsonpath).parent})",
+        "date_created": f"{datetime.now(UTC).isoformat()}",
+    }
 
     with open(output_jsonpath, 'w') as f:
         output_json = json.dumps(output_json_dict)
         f.write(output_json)
+    print(f"Labels: {len(output_json_dict['annotations'])} (ignored {ignored_labels})")
 
 
 def main():
